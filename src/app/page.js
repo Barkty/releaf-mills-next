@@ -86,7 +86,7 @@ export const PoiMarkers = ({ mills, pks }) => {
     if(!ev.latLng) return;
     map.panTo(ev.latLng);
     setCircleCenter(ev.latLng);
-  });
+  }, []);
 
   return (
     <>
