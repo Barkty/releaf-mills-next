@@ -1,101 +1,148 @@
-import Image from "next/image";
+"use client"
+
+import { APIProvider, Map, Pin, AdvancedMarker, useMap  } from '@vis.gl/react-google-maps';
+import { MarkerClusterer } from '@googlemaps/markerclusterer';
+import Navbar from "@/components/Navbar";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { useFetchDumpSites } from '@/hooks/use-get-sites';
+import { Circle } from '@/components/Circle';
+import { Popup } from '@/components/Popup';
+import { useFetchMills } from '@/hooks/use-mills';
+import AddNewPKS from '@/components/AddNewPKS';
+
+export const everyMinute = 60 * 1000;
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-8 row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-semibold">
-              src/app/page.js
-            </code>
-            .
-          </li>
-          <li>Save and see your changes instantly.</li>
-        </ol>
+  const [menuOpen, setMenuOpen] = useState(false);
+  const { data, isFetching } = useFetchDumpSites({}, {refetchInterval: everyMinute})
+  const { data: millData, isFetching: isPending } = useFetchMills({}, {refetchInterval: everyMinute})
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:min-w-44"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
-        </div>
-      </main>
-      <footer className="row-start-3 flex gap-6 flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
+  return (
+    <div className="w-full h-screen items-center justify-items-center min-h-screen gap-16">
+      <Navbar setMenuOpen={setMenuOpen} menuOpen={menuOpen} />
+      <APIProvider apiKey={process.env.NEXT_PUBLIC_GOOGLE_API}>
+        <Map
+          defaultZoom={13}
+          mapId='DEMO_MAP_ID'
+          defaultCenter={ { lat: 5.610867, lng: 8.171645 } }
+          onCameraChanged={ (ev) =>
+            console.log('camera changed:', ev.detail.center, 'zoom:', ev.detail.zoom)
+          }
         >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
+          {(!isFetching || isPending) && <PoiMarkers mills={millData} pks={data}/>}
+        </Map>
+      </APIProvider>
+      <AddNewPKS menuOpen={menuOpen} toggle={() => setMenuOpen(false)}/>
     </div>
   );
 }
+
+export const PoiMarkers = ({ mills, pks }) => {
+  const map = useMap();
+  const [markers, setMarkers] = useState({});
+  const clusterer = useRef(null);
+  const [circleCenter, setCircleCenter] = useState(null)
+  const [selectedMill, setSelectedMill] = useState(null);
+  const [selectedPks, setSelectedPks] = useState(null);
+
+  const handleMarkerClick = (mill) => {
+    setSelectedMill(mill);
+  };
+  const handlePKSClick = (mill) => {
+    setSelectedPks(mill);
+  };
+
+  // Initialize MarkerClusterer, if the map has changed
+  useEffect(() => {
+    if (!map) return;
+    if (!clusterer.current) {
+      clusterer.current = new MarkerClusterer({map});
+    }
+  }, [map]);
+
+  // Update markers, if the markers array has changed
+  useEffect(() => {
+    clusterer.current?.clearMarkers();
+    clusterer.current?.addMarkers(Object.values(markers));
+  }, [markers]);
+
+  const setMarkerRef = (marker, key) => {
+    if (marker && markers[key]) return;
+    if (!marker && !markers[key]) return;
+
+    setMarkers(prev => {
+      if (marker) {
+        return {...prev, [key]: marker};
+      } else {
+        const newMarkers = {...prev};
+        delete newMarkers[key];
+        return newMarkers;
+      }
+    });
+  };
+
+  const handleClick = useCallback((ev) => {
+    if(!map) return;
+    if(!ev.latLng) return;
+    map.panTo(ev.latLng);
+    setCircleCenter(ev.latLng);
+  });
+
+  return (
+    <>
+      <Circle
+        radius={800}
+        center={circleCenter}
+        strokeColor={'#0c4cb3'}
+        strokeOpacity={1}
+        strokeWeight={3}
+        fillColor={'#3b82f6'}
+        fillOpacity={0.3}
+      />
+      {mills && mills.map((mill) => (
+        <AdvancedMarker
+          map={map.map}
+          clickable={true}
+          onClick={(e) => {
+            handleClick(e);
+            handleMarkerClick(mill)
+          }}
+          key={mill.millName}
+          ref={marker => setMarkerRef(marker, mill.millName)}
+          position={{ lat: mill.latitude, lng: mill.longitude }}
+        >
+          <Pin background={'#FBBC04'} glyphColor={'#000'} borderColor={'#000'} />
+        </AdvancedMarker>
+      ))}
+      {pks && pks.map((mill) => (
+        <AdvancedMarker
+          map={map.map}
+          clickable={true}
+          onClick={(e) => {
+            handleClick(e);
+            handlePKSClick(mill)
+          }}
+          key={mill.latitude}
+          ref={marker => setMarkerRef(marker, mill.latitude)}
+          position={{ lat: mill.latitude, lng: mill.longitude }}
+        >
+          <Pin background={'#FF0000'} glyphColor={'#FFF'} borderColor={'#FFF'} />
+        </AdvancedMarker>
+      ))}
+      {selectedMill && (
+        <Popup
+          mill={selectedMill}
+          onClose={() => setSelectedMill(null)}
+          title={'Mill Details'}
+        />
+      )}
+      {selectedPks && (
+        <Popup
+          mill={selectedPks}
+          onClose={() => setSelectedPks(null)}
+          title={'Palm Kernel Shell Details'}
+        />
+      )}
+    </>
+  );
+};
