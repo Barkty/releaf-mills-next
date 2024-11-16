@@ -1,0 +1,151 @@
+### README: Frontend Components Documentation
+
+This document provides an overview of the components and utilities used in the frontend codebase for managing PKS Dumpsites. Below is a detailed explanation of each component, library, and utility used in the `AddNewPKS` component.
+
+---
+
+### **Components and Libraries Used**
+
+#### **1. Button, Modal, ModalContent**  
+- **Imported From:** `@nextui-org/react`
+- **Usage:**  
+  - `Button`: Used for the form submission.
+  - `Modal`: A dialog box for creating new PKS dumpsites.
+  - `ModalContent`: The container for modal content, holding the form and title.
+
+#### **2. CircularProgress**  
+- **Imported From:** `@mui/material`
+- **Usage:**  
+  Displays a loading spinner inside the submit button when the form submission is in progress.
+
+---
+
+#### **3. FormField**  
+- **Imported From:** `./Text`
+- **Usage:**  
+  A reusable input field component used for text inputs such as Latitude, Longitude, and Capacity.
+
+---
+
+#### **4. SelectField**  
+- **Imported From:** `./Select`
+- **Usage:**  
+  A dropdown component for selecting the status of the PKS dumpsite (e.g., Active or Inactive).
+
+---
+
+#### **5. React Hook Form**  
+- **Imported From:** `react-hook-form`
+- **Usage:**  
+  - `useForm`: Manages form state, validation, and submission.
+  - `Controller`: Integrates custom components (`FormField`, `SelectField`) with React Hook Form.
+
+---
+
+#### **6. Validation with Yup**  
+- **Imported From:** `@hookform/resolvers/yup`
+- **Usage:**  
+  - `yupResolver(createDumpSchema)`: Resolves form validation using the Yup schema defined in `createDumpSchema`.
+
+---
+
+#### **7. React Query**  
+- **Imported From:** `@tanstack/react-query`
+- **Usage:**  
+  - `useMutation`: Manages API calls for creating PKS dumpsites with `createDumpSites` service.
+  - Handles success and error states with appropriate UI feedback.
+
+---
+
+#### **8. Utilities**
+- **_notifyError, _notifySuccess**  
+  - **Imported From:** `@/utils/alert`
+  - **Usage:**  
+    - Displays error or success notifications after form submission.
+
+- **PKS_STATUS**  
+  - **Imported From:** `@/utils/constants`
+  - **Usage:**  
+    - Provides predefined status options (e.g., Active, Inactive) for the dropdown.
+
+---
+
+### **Component: `AddNewPKS`**
+
+#### **Props**
+- **`menuOpen` (Boolean):**  
+  Controls the visibility of the modal.
+- **`toggle` (Function):**  
+  Toggles the modal's open/close state.
+
+---
+
+#### **State Management**
+- **`initialState`:**  
+  Defines the default values for the form fields:
+  ```javascript
+  const initialState = {
+      status: "",
+      latitude: 0.0,
+      longitude: 0.0,
+      capacity: 0
+  };
+  ```
+
+---
+
+#### **Form Validation**
+- **Validation Schema:**  
+  Defined in `createDumpSchema` to ensure proper validation for each field.
+
+---
+
+#### **API Integration**
+- **`createDumpSites`:**  
+  - API service for creating new PKS dumpsites.
+  - Handles success (`_notifySuccess`) and error (`_notifyError`) scenarios.
+
+---
+
+#### **Form Fields**
+- **Latitude:**  
+  Text input for latitude coordinates.  
+- **Longitude:**  
+  Text input for longitude coordinates.  
+- **Capacity:**  
+  Number input for dumpsite capacity.  
+- **Status:**  
+  Dropdown for selecting dumpsite status.
+
+---
+
+### **Setup and Dependencies**
+To use this component, ensure the following dependencies are installed:
+
+```bash
+npm install @mui/material @tanstack/react-query @nextui-org/react react-hook-form @hookform/resolvers yup
+```
+
+---
+
+### **Example Usage**
+
+```jsx
+import React, { useState } from 'react';
+import AddNewPKS from './components/AddNewPKS';
+
+const App = () => {
+  const [isModalOpen, setModalOpen] = useState(false);
+
+  const toggleModal = () => setModalOpen(!isModalOpen);
+
+  return (
+    <div>
+      <button onClick={toggleModal}>Add New PKS Dumpsite</button>
+      <AddNewPKS menuOpen={isModalOpen} toggle={toggleModal} />
+    </div>
+  );
+};
+
+export default App;
+```
