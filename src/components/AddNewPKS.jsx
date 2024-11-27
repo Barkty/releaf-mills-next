@@ -18,10 +18,14 @@ const initialState = {
     capacity: 0.
 }
 
-const AddNewPKS = ({ menuOpen, toggle }) => {
+const AddNewPKS = ({ menuOpen, toggle, latLng, setLatLng }) => {
     const { handleSubmit, control, reset, formState: { isValid } } = useForm({
         mode: "onBlur",
-        defaultValues: initialState,
+        defaultValues: { 
+            ...initialState,
+            latitude: latLng?.lat || '0.0',
+            longitude: latLng?.lng || '0.0'
+        },
         resolver: yupResolver(createDumpSchema),
     });
 
@@ -30,10 +34,12 @@ const AddNewPKS = ({ menuOpen, toggle }) => {
         onError: (error) => {
             _notifyError(error.response.data.message);
             reset(initialState)
+            setLatLng({})
         },
         onSuccess: (data) => {
             const { message } = data
             reset(initialState)
+            setLatLng({})
             _notifySuccess(message)
             toggle()
         },
@@ -57,6 +63,7 @@ const AddNewPKS = ({ menuOpen, toggle }) => {
                                 placeholder="5.610867"
                                 type="text"
                                 {...fieldProps}
+                                value={latLng.lat}
                                 error={error}
                             />
                         )
@@ -75,6 +82,7 @@ const AddNewPKS = ({ menuOpen, toggle }) => {
                                 placeholder="8.171645"
                                 type="text"
                                 {...fieldProps}
+                                value={latLng.lng}
                                 error={error}
                             />
                         )

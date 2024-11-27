@@ -14,8 +14,16 @@ export const everyMinute = 60 * 1000;
 
 export default function Home() {
   const [menuOpen, setMenuOpen] = useState(false);
+  const [latLng, setLatLng] = useState(null);
   const { data, isFetching } = useFetchDumpSites({}, {refetchInterval: everyMinute})
   const { data: millData, isFetching: isPending } = useFetchMills({}, {refetchInterval: everyMinute})
+
+  const handleMapClick = (event) => {
+    const lat = event.detail.latLng.lat;
+    const lng = event.detail.latLng.lng;
+    setLatLng({ lat, lng });
+    setMenuOpen(true)
+  };
 
   return (
     <div className="w-full h-screen items-center justify-items-center min-h-screen gap-16">
@@ -28,11 +36,12 @@ export default function Home() {
           onCameraChanged={ (ev) =>
             console.log('camera changed:', ev.detail.center, 'zoom:', ev.detail.zoom)
           }
+          onClick={handleMapClick}
         >
           {(!isFetching || isPending) && <PoiMarkers mills={millData} pks={data}/>}
         </Map>
       </APIProvider>
-      <AddNewPKS menuOpen={menuOpen} toggle={() => setMenuOpen(false)}/>
+      <AddNewPKS menuOpen={menuOpen} toggle={() => setMenuOpen(false)} latLng={latLng} setLatLng={setLatLng} />
     </div>
   );
 }
@@ -122,8 +131,8 @@ export const PoiMarkers = ({ mills, pks }) => {
             handleClick(e);
             handlePKSClick(mill)
           }}
-          key={mill.latitude}
-          ref={marker => setMarkerRef(marker, mill.latitude)}
+          key={mill.millName}
+          ref={marker => setMarkerRef(marker, mill.millName)}
           position={{ lat: mill.latitude, lng: mill.longitude }}
         >
           <Pin background={'#FF0000'} glyphColor={'#FFF'} borderColor={'#FFF'} />
